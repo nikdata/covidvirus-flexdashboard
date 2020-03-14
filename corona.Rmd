@@ -1,0 +1,294 @@
+---
+title: "COVID-19"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: scroll
+    source_code: embed
+---
+
+```{r setup, include=FALSE}
+# Load libraries
+library(flexdashboard)
+library(covidvirus)
+library(tidyverse)
+library(plotly)
+library(DT)
+
+# Acquire Data
+virus <- covidvirus::get_cases(wide=T)
+
+# define colors
+clr_active = 'orange'
+clr_confirmed = 'orange'
+clr_dead = 'darkred'
+clr_recovered = 'forestgreen'
+clr_total = 'blue'
+clr_states = 'purple'
+
+# replace NAs with zeros
+virus <- virus %>%
+  mutate(
+    confirmed = ifelse(is.na(confirmed), 0, confirmed),
+    death = ifelse(is.na(death), 0, death),
+    recovered = ifelse(is.na(recovered), 0, recovered),
+    active = confirmed - death - recovered,
+    country = trimws(country_region),
+    country= case_when(
+      country_region == 'Mainland China' ~ 'China',
+      country_region == 'United Arab Emirates' ~ 'UAE',
+      country_region == 'US' ~ 'USA',
+      country_region == 'North Macedonia' ~ 'N. Macedonia',
+      country_region == 'Korea, South' ~ 'South Korea',
+      TRUE ~ country_region
+    ),
+    country = trimws(country)
+  )
+
+# data summaries - country
+
+country_totals <- virus %>%
+  group_by(country) %>%
+  summarize(
+    confirmed = sum(confirmed),
+    death = sum(death),
+    recovered = sum(recovered),
+    active = sum(active)
+  ) %>%
+  ungroup %>%
+  arrange(desc(confirmed)) %>%
+  mutate(country = factor(country, levels = country))
+
+daily_totals <- virus %>%
+  pivot_longer(
+    cols = confirmed:active,
+    names_to = 'type',
+    values_to = 'cases'
+  ) %>%
+  group_by(date, type) %>%
+  summarize(
+    cases = sum(cases)
+  ) %>%
+  ungroup()
+
+
+# data summaries - US
+
+usdf <- virus %>%
+  filter(country_region == 'US') %>%
+  separate(col = province_state, into = c('region', 'state'), sep = ',', fill = 'left') %>%
+  filter(!state %in% c('Diamond Princess','Grand Princess')) %>%
+  mutate(
+    state = trimws(state),
+    state = case_when(
+      state == 'IN' ~ 'Indiana',
+      state == 'FL' ~ 'Florida',
+      state == 'CA' ~ 'California',
+      state == 'MN' ~ 'Minnesota',
+      state == 'CO' ~ 'Colorado',
+      state == 'VA' ~ 'Virginia',
+      state == 'SD' ~ 'South Dakota',
+      state == 'VT' ~ 'Vermont',
+      state == 'NJ' ~ 'New Jersey',
+      state == 'MA' ~ 'Massachusetts',
+      state == 'NM' ~ 'New Mexico',
+      state == 'PA' ~ 'Pennsylvania',
+      state == 'NC' ~ 'North Carolina',
+      state == 'SC' ~ 'South Carolina',
+      state == 'GA' ~ 'Georgia',
+      state == 'NV' ~ 'Nevada',
+      state == 'WA' ~ 'Washington',
+      state == 'TX' ~ 'Texas',
+      state == 'IL' ~ 'Illinois',
+      state == 'OH' ~ 'Ohio',
+      state == 'WI' ~ 'Wisconsin',
+      state == 'TN' ~ 'Tennessee',
+      state == 'UT' ~ 'Utah',
+      state == 'OR' ~ 'Oregon',
+      state == 'NE' ~ 'Nebraska',
+      state == 'CT' ~ 'Connecticut',
+      state == 'KY' ~ 'Kentucky',
+      state == 'NH' ~ 'New Hampshire',
+      state == 'MD' ~ 'Maryland',
+      state == 'HI' ~ 'Hawaii',
+      state == 'LA' ~ 'Louisiana',
+      state == 'IA' ~ 'Iowa',
+      state == 'KS' ~ 'Kansas',
+      state == 'AZ' ~ 'Arizona',
+      state == 'NY' ~ 'New York',
+      state == 'DE' ~ 'Delaware',
+      state == 'MI' ~ 'Michigan',
+      state == 'RI' ~ 'Rhode Island',
+      state == 'MO' ~ 'Missouri',
+      state == 'OK' ~ 'Oklahoma',
+      state == 'D.C.' ~ 'District of Columbia',
+      TRUE ~ state
+    )
+  ) %>%
+  select(-region, -country_region, -lat, -long, -country)
+
+```
+
+Summary
+=======================
+
+
+Row
+-----------------------------------------------------------------------
+### Countries
+```{r}
+valueBox(length(unique(country_totals$country)), color = clr_states)
+```
+
+
+### Confirmed
+```{r}
+total_confirmed = sum(country_totals$confirmed)
+valueBox(total_confirmed, icon = 'fa-user-md', color = clr_total)
+```
+
+
+
+### Active Cases
+```{r}
+active_cases = sum(country_totals$active)
+pct_active = round((active_cases / total_confirmed) * 100,1)
+valueBox(paste0(active_cases," (",pct_active,"%)"), icon = 'fa-hospital', color = clr_active)
+```
+
+### Recovered
+```{r}
+total_recovered = sum(country_totals$recovered)
+pct_recovered = round((total_recovered / total_confirmed) * 100,1)
+valueBox(paste0(total_recovered," (",pct_recovered,"%)"), icon = 'fa-walking', color = clr_recovered)
+```
+
+### Deaths
+```{r}
+total_deaths = sum(country_totals$death)
+pct_dead = round((total_deaths / total_confirmed) * 100, 1)
+valueBox(paste0(total_deaths," (", pct_dead, "%)"), icon = 'fa-dizzy', color = clr_dead)
+```
+
+
+
+Row
+-----------------------------------------------------------------------
+
+```{r, echo=FALSE}
+
+```
+
+
+### Top 25 Countries with Confirmed Cases
+
+```{r}
+top25 <- country_totals %>%
+  arrange(desc(confirmed)) %>%
+  head(25)
+
+plot_ly(data = top25,x = ~country, y = ~active, type = 'bar', name = 'Active', marker = list(color = clr_active)) %>%
+  add_trace(y = ~recovered, name = 'Recovered', marker = list(color = clr_recovered)) %>%
+  add_trace(y = ~death, name = 'Dead', marker = list(color = clr_dead)) %>%
+  layout(barmode = 'stack', yaxis = list(title = 'Total Cases (log scale)', type = 'log'))
+```
+
+Row
+-----------------------------------------------------------------------
+
+### Daily Cumulative Cases by Type
+
+```{r}
+dailies <- daily_totals %>%
+  pivot_wider(
+    names_from = type,
+    values_from = cases,
+    values_fill = list(cases = 0)
+  ) %>%
+  arrange(date) %>%
+  mutate(
+    total_active = cumsum(active),
+    total_confirmed = cumsum(confirmed),
+    total_dead = cumsum(death),
+    total_recovered = cumsum(recovered)
+  ) %>%
+  select(-active, -confirmed, -death, -recovered)
+
+plot_ly(data = dailies, x = ~date, y = ~total_active, name='Active', type = 'scatter', mode = 'lines+markers', line = list(color = clr_active), marker = list(color = clr_active)) %>%
+  add_trace(y = ~total_dead, name = 'Dead', type = 'scatter', mode = 'lines+markers', line = list(color = clr_dead), marker = list(color = clr_dead)) %>%
+  add_trace(y = ~total_recovered, name = 'Recovered', type = 'scatter', mode = 'lines+markers', line = list(color= clr_recovered), marker = list(color=clr_recovered)) %>%
+  layout(yaxis = list(title = 'Cumulative Total Cases (log scale)', type = 'log'))
+```
+
+### Active, Recovery, & Death Rates by Country (minimum 50 confirmed cases)
+
+
+```{r}
+
+country_rates <- country_totals %>%
+  mutate(
+    active_pct = round((active / confirmed)*100,1),
+    dead_pct = round((death / confirmed) * 100, 1),
+    recover_pct = round((recovered / confirmed) * 100, 1)
+  ) %>%
+  arrange(desc(confirmed)) %>%
+  select(country = country, confirmed, active_pct, dead_pct, recover_pct) %>%
+  filter(confirmed >= 50)
+
+datatable(country_rates, 
+          rownames = F, 
+          colnames = c("Country", "Confirmed", "Active Rate", "Death Rate", "Recovery Rate"),
+          options = list(dom = 'tip')
+          )
+```
+
+
+US Overview
+=============================
+Row
+--------------
+### States
+```{r}
+state_count = usdf %>% filter(confirmed > 0) %>% select(state) %>% distinct() %>% count()
+valueBox(value = state_count, color = clr_states)
+```
+
+
+### Confirmed
+
+```{r}
+us_confirmed = sum(usdf$confirmed)
+valueBox(us_confirmed, icon = 'fa-user-md', color = clr_total)
+```
+
+
+### Active
+
+```{r}
+us_active_cases = sum(usdf$active)
+us_pct_active = round((us_active_cases / us_confirmed) * 100,1)
+valueBox(paste0(us_active_cases," (",us_pct_active,"%)"), icon = 'fa-hospital', color = clr_active)
+```
+
+
+### Recovered
+
+```{r}
+us_recovered = sum(usdf$recovered)
+us_pct_recovered = round((us_recovered / us_confirmed) * 100,1)
+valueBox(paste0(us_recovered," (",us_pct_recovered,"%)"), icon = 'fa-walking', color = clr_recovered)
+```
+
+
+### Deaths
+
+```{r}
+us_deaths = sum(usdf$death)
+us_pct_dead = round((us_deaths / us_confirmed) * 100, 1)
+valueBox(paste0(us_deaths," (", us_pct_dead, "%)"), icon = 'fa-dizzy', color = clr_dead)
+```
+
+
+
+About
+==============================

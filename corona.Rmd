@@ -39,8 +39,7 @@ virus <- virus %>%
       country_region == 'North Macedonia' ~ 'N. Macedonia',
       TRUE ~ country_region
     )
-  ) %>%
-  select(-country_region)
+  )
 
 # data summaries - country
 
@@ -78,7 +77,7 @@ usdf <- virus %>%
 
 
 us_totals <- usdf %>%
-  group_by(state) %>%
+  group_by(state, state_name) %>%
   summarize(
     confirmed = sum(confirmed),
     death = sum(death),
@@ -332,6 +331,9 @@ datatable(state_rates,
 Snapshots
 ============================
 
+Row
+-----------------------------
+
 ### Top 10 Countries with New Confirmed Cases
 
 ```{r}
@@ -376,6 +378,66 @@ plot_ly(data = main_countries, x = ~date, y = ~Germany, type = 'scatter', name =
   layout(yaxis = list(title = 'Total Cases (log scale)', type = 'log'))
 
 ```
+
+Maps 
+==================
+
+Row
+--------------------
+### World Map
+
+```{r}
+# specify map projection/options
+# g <- list(
+#   showframe = FALSE,
+#   showcoastlines = TRUE,
+#   projection = list(type = 'Mercator')
+# )
+
+# plot_geo(country_totals) %>%
+#   add_trace(
+#     z = ~active, locations = ~country,
+#     locationmode = 'country names',
+#     color = 'oranges'
+#   ) %>%
+#   colorbar(title = 'Active Cases') %>%
+#   layout(
+#     title = 'Active Covid-19 Virus Cases Worldwide<br>(Hover for breakdown)',
+#     geo = g
+#   )
+
+```
+
+
+### US Map - Overview
+
+```{r}
+
+us2 <- us_totals %>%
+  mutate(
+    hover = paste0(state_name, '<br>', 'confirmed cases: ', confirmed, '<br>', 'Deaths: ', death, '<br>', 'Recovered: ', recovered)
+  )
+
+fig <- plot_geo(us2, locationmode = 'USA-states') %>%
+  add_trace(
+    z = ~active, locations = ~state,
+    text = ~hover,
+    color = ~active, colors = 'Oranges'
+  ) %>%
+  layout(
+    title = 'Active Covid-19 Virus Cases in the US<br>(Hover for breakdown)',
+    geo = list(
+                scope = 'usa',
+                projection = list(type = 'albers usa'),
+                showlakes = TRUE,
+                lakecolor = toRGB('white')
+    )
+  )
+
+fig
+```
+
+
 
 
 About

@@ -191,9 +191,9 @@ USA
 =================================
 Row
 --------------
-### States
+### States & Territories
 ```{r}
-state_count = usdf %>% filter(confirmed > 0 & !state %in% c('Diamond Princess','Grand Princess')) %>% select(state) %>% distinct() %>% count()
+state_count = usdf %>% filter(confirmed > 0 & !state %in% c('Diamond Princess','Grand Princess') & !is.na(state)) %>% select(state) %>% distinct() %>% count()
 valueBox(value = state_count, color = clr_overall)
 ```
 
@@ -238,6 +238,40 @@ Row
 ### Active Cases - USA
 
 ```{r}
+
+us2 <- us_totals %>%
+  mutate(
+    hover = paste0(state_name, '<br>', 'confirmed cases: ', confirmed, '<br>', 'Deaths: ', death, '<br>', 'Recovered: ', recovered)
+  )
+
+max_cases <- us_totals %>%
+  filter(!is.na(state)) %>%
+  filter(!state %in% c('Guam','Puerto Rico','Virgin Islands')) %>%
+  summarize(
+    max_case_count = max(active)
+  ) %>%
+  pull(max_case_count)
+
+g2 <- list(
+  scope = 'usa',
+  projection = list(type = 'albers usa'),
+  showlakes = TRUE,
+  lakecolor = toRGB('white')
+)
+
+fig <- plot_geo(us2, locationmode = 'USA-states') %>%
+  add_trace(
+    z = ~active, text = ~hover, locations = ~state,
+    color = ~active, colors = 'Oranges'
+  ) %>%
+  layout(
+    geo = g2
+  ) %>%
+  colorbar(title = "Active Cases", limits = c(0, max_cases) , len = 1)
+
+config(fig, fillFrame = TRUE)
+# bug fix solution: https://github.com/ropensci/plotly/issues/1546 ; see solution by cpsievert on Aug. 30, 2019
+
 
 ```
 
@@ -336,7 +370,7 @@ state_rates <- us_totals %>%
   ) %>%
   arrange(desc(confirmed)) %>%
   select(state, confirmed, active_pct, dead_pct, recover_pct) %>%
-  filter(confirmed > 0)
+  filter(confirmed > 0 & !is.na(state))
 
 datatable(state_rates, 
           rownames = F, 

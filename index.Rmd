@@ -109,7 +109,7 @@ Row
 -----------------------
 ### Countries
 
-```{r}
+```{r vbox_world_cntrycount, echo = FALSE}
 count_affected_countries <- country_totals %>%
   filter(confirmed > 0) %>%
   select(country, confirmed) %>%
@@ -123,7 +123,7 @@ valueBox(count_affected_countries, color = clr_overall)
 
 ### Confirmed
 
-```{r}
+```{r vbox_world_confirmed, echo = FALSE}
 total_confirmed = sum(country_totals$confirmed)
 valueBox(total_confirmed, icon = 'fa-user-md', color = clr_total)
 ```
@@ -131,21 +131,21 @@ valueBox(total_confirmed, icon = 'fa-user-md', color = clr_total)
 
 
 ### Active Cases
-```{r}
+```{r vbox_world_active, echo = FALSE}
 active_cases = sum(country_totals$active)
 pct_active = round((active_cases / total_confirmed) * 100,1)
 valueBox(paste0(active_cases," (",pct_active,"%)"), icon = 'fa-hospital', color = clr_active)
 ```
 
 ### Recovered
-```{r}
+```{r vbox_world_recovered, echo = FALSE}
 total_recovered = sum(country_totals$recovered)
 pct_recovered = round((total_recovered / total_confirmed) * 100,1)
 valueBox(paste0(total_recovered," (",pct_recovered,"%)"), icon = 'fa-walking', color = clr_recovered)
 ```
 
 ### Deaths
-```{r}
+```{r vbox_world_deaths, echo = FALSE}
 total_deaths = sum(country_totals$death)
 pct_dead = round((total_deaths / total_confirmed) * 100, 1)
 valueBox(paste0(total_deaths," (", pct_dead, "%)"), icon = 'fa-dizzy', color = clr_dead)
@@ -156,7 +156,7 @@ Row
 
 ### Active Cases - Worldwide
 
-```{r map_world_chloropleth, echo = FALSE}
+```{r map_world_choropleth, echo = FALSE}
 # specify map projection/options
  g <- list(
    showframe = FALSE,
@@ -192,7 +192,7 @@ USA
 Row
 --------------
 ### States & Territories
-```{r}
+```{r vbox_usa_statecount, echo = FALSE}
 state_count = usdf %>% filter(confirmed > 0 & !state %in% c('Diamond Princess','Grand Princess') & !is.na(state)) %>% select(state) %>% distinct() %>% count()
 valueBox(value = state_count, color = clr_overall)
 ```
@@ -200,7 +200,7 @@ valueBox(value = state_count, color = clr_overall)
 
 ### Confirmed
 
-```{r}
+```{r vbox_usa_confirmed, echo = FALSE}
 us_confirmed = sum(usdf$confirmed)
 valueBox(us_confirmed, icon = 'fa-user-md', color = clr_total)
 ```
@@ -208,7 +208,7 @@ valueBox(us_confirmed, icon = 'fa-user-md', color = clr_total)
 
 ### Active
 
-```{r}
+```{r vbox_usa_active, echo = FALSE}
 us_active_cases = sum(usdf$active)
 us_pct_active = round((us_active_cases / us_confirmed) * 100,1)
 valueBox(paste0(us_active_cases," (",us_pct_active,"%)"), icon = 'fa-hospital', color = clr_active)
@@ -217,7 +217,7 @@ valueBox(paste0(us_active_cases," (",us_pct_active,"%)"), icon = 'fa-hospital', 
 
 ### Recovered
 
-```{r}
+```{r vbox_usa_recovered, echo = FALSE}
 us_recovered = sum(usdf$recovered)
 us_pct_recovered = round((us_recovered / us_confirmed) * 100,1)
 valueBox(paste0(us_recovered," (",us_pct_recovered,"%)"), icon = 'fa-walking', color = clr_recovered)
@@ -226,7 +226,7 @@ valueBox(paste0(us_recovered," (",us_pct_recovered,"%)"), icon = 'fa-walking', c
 
 ### Deaths
 
-```{r}
+```{r vbox_usa_deaths, echo = FALSE}
 us_deaths = sum(usdf$death)
 us_pct_dead = round((us_deaths / us_confirmed) * 100, 1)
 valueBox(paste0(us_deaths," (", us_pct_dead, "%)"), icon = 'fa-dizzy', color = clr_dead)
@@ -237,7 +237,7 @@ Row
 
 ### Active Cases - USA
 
-```{r}
+```{r map_us_choropleth, echo = FALSE}
 
 us2 <- us_totals %>%
   mutate(
@@ -284,7 +284,7 @@ Row
 
 ### Daily Cumulative Cases by Type - Worldwide
 
-```{r}
+```{r trends_worldwide, echo = FALSE}
 dailies <- daily_totals %>%
   pivot_wider(
     names_from = type,
@@ -309,7 +309,7 @@ plot_ly(data = dailies, x = ~date, y = ~total_active, name='Active', type = 'sca
 
 ### Daily Cumulative Cases by Type - USA
 
-```{r}
+```{r trends_usa, echo=FALSE}
 us_dailies <- us_daily %>%
   pivot_wider(
     names_from = type,
@@ -337,7 +337,7 @@ Row
 ### Active, Recovery, & Death Rates by Country (minimum 50 confirmed cases)
 
 
-```{r}
+```{r tbl_world, echo=FALSE}
 
 country_rates <- country_totals %>%
   mutate(
@@ -360,7 +360,7 @@ datatable(country_rates,
 ### Active, Recovery, & Death Rates by State
 
 
-```{r}
+```{r tbl_USA, echo=FALSE}
 
 state_rates <- us_totals %>%
   mutate(
@@ -379,6 +379,19 @@ datatable(state_rates,
           )
 ```
 
+
 About
 =============
+
+**COVID-19 Virus Dashboard**
+
+This dasbhoard is designed to give a brief overview of the 2019 Novel Coronavirus COVID-19 pandemic.
+
+**Source**
+
+This dashboard makes use of the [<covidvirus>](https://github.com/nikdata/covidvirus) R package. The underlying data comes from Johns Hopkins University Center for Systems Science and Engineering (JHU CCSE) Coronavirus [repository](https://github.com/CSSEGISandData/COVID-19)
+
+**Feedback**
+
+If you have any suggestions, comments, etc., please contact me on [Twitter](www.twitter.com/nikagarwal) or file an issue.
 
